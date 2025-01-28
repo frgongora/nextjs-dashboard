@@ -36,8 +36,49 @@ export async function createInvoice(formData: FormData) {
         throw new Error('Failed to insert new invoice to db.');
     } finally {
         client.end();
-        revalidatePath('/dashboard/invoices');
-        redirect('/dashboard/invoices');
     }
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
+}
 
+// Use Zod to update the expected types
+const UpdateInvoice = FormSchema.omit({ id: true, date: true });
+
+// ...
+
+export async function updateInvoice(id: string, formData: FormData) {
+    const client = await getClient()
+    const { customerId, amount, status } = UpdateInvoice.parse({
+        customerId: formData.get('customerId'),
+        amount: formData.get('amount'),
+        status: formData.get('status'),
+    });
+
+    const amountInCents = amount * 100;
+    try {
+        await client.sql`
+    UPDATE invoices
+    SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+    WHERE id = ${id}
+  `;
+    } catch (error) {
+        console.error('Database Error:', error);
+        throw new Error('Failed to update invoice to db.');
+    } finally {
+        client.end();
+    }
+    revalidatePath('/dashboard/invoices');
+    redirect('/dashboard/invoices');
+}
+
+export async function deleteInvoice(id: string) {
+    const client = await getClient();
+    try {
+        await client.sql`DELETE FROM invoices WHERE id = ${id}`;
+    } catch (error) {
+
+    } finally {
+        client.end();
+    }
+    revalidatePath('/dashboard/invoices');
 }
