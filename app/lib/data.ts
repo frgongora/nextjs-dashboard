@@ -1,4 +1,4 @@
-import { db } from '@vercel/postgres';
+import { db, createClient } from '@vercel/postgres';
 import {
   CustomerField,
   CustomersTableType,
@@ -9,28 +9,35 @@ import {
 } from './definitions';
 import { formatCurrency } from './utils';
 
-const client = await db.connect();
+async function getClient() {
+  const client = await createClient();
+  await client.connect();
+  return client;
+}
 
 export async function fetchRevenue() {
+  const client = await getClient();
   try {
     // Artificially delay a response for demo purposes.
     // Don't do this in production :)
 
-    // console.log('Fetching revenue data...');
-    // await new Promise((resolve) => setTimeout(resolve, 3000));
-
+    console.log('Fetching revenue data...');
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     const data = await client.sql<Revenue>`SELECT * FROM revenue`;
 
-    // console.log('Data fetch completed after 3 seconds.');
+    console.log('Data fetch completed after 3 seconds.');
 
     return data.rows;
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch revenue data.');
+  } finally {
+    client.end();
   }
 }
 
 export async function fetchLatestInvoices() {
+  const client = await getClient();
   try {
     const data = await client.sql<LatestInvoiceRaw>`
       SELECT invoices.amount, customers.name, customers.image_url, customers.email, invoices.id
@@ -47,10 +54,13 @@ export async function fetchLatestInvoices() {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch the latest invoices.');
+  } finally {
+    client.end();
   }
 }
 
 export async function fetchCardData() {
+  const client = await getClient();
   try {
     // You can probably combine these into a single SQL query
     // However, we are intentionally splitting them to demonstrate
@@ -82,6 +92,8 @@ export async function fetchCardData() {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch card data.');
+  } finally {
+    client.end();
   }
 }
 
@@ -90,6 +102,7 @@ export async function fetchFilteredInvoices(
   query: string,
   currentPage: number,
 ) {
+  const client = await getClient()
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
@@ -118,10 +131,13 @@ export async function fetchFilteredInvoices(
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoices.');
+  } finally {
+    client.end();
   }
 }
 
 export async function fetchInvoicesPages(query: string) {
+  const client = await getClient();
   try {
     const count = await client.sql`SELECT COUNT(*)
     FROM invoices
@@ -139,10 +155,13 @@ export async function fetchInvoicesPages(query: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch total number of invoices.');
+  } finally {
+    client.end();
   }
 }
 
 export async function fetchInvoiceById(id: string) {
+  const client = await getClient();
   try {
     const data = await client.sql<InvoiceForm>`
       SELECT
@@ -164,10 +183,13 @@ export async function fetchInvoiceById(id: string) {
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoice.');
+  } finally {
+    client.end();
   }
 }
 
 export async function fetchCustomers() {
+  const client = await getClient();
   try {
     const data = await client.sql<CustomerField>`
       SELECT
@@ -182,10 +204,13 @@ export async function fetchCustomers() {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch all customers.');
+  } finally {
+    client.end();
   }
 }
 
 export async function fetchFilteredCustomers(query: string) {
+  const client = await getClient();
   try {
     const data = await client.sql<CustomersTableType>`
 		SELECT
@@ -215,5 +240,7 @@ export async function fetchFilteredCustomers(query: string) {
   } catch (err) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
+  } finally {
+    client.end();
   }
 }
